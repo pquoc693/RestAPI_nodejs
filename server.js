@@ -7,14 +7,20 @@ var app = express();
 // khai báo cổng chạy dịch vụ
 var PORT = process.env.PORT || 3000;
 
-app.get('/', function (req, res) {
-    res.send(data);
-});
+
+
+// app.get('/', function (req, res) {
+//     res.send(data);
+// });
 app.listen(PORT, function () {
     console.log('Express listening on port' + PORT + '!');
 });
+//swagger
+app.use(express.static('./dist'));
+app.get('/swagger',(req,res)=>{
+    res.sendFile('index.html');
+})
 
-//
 // GET   --- Get All data
 app.get('/data', function (req, res) {
     res.json(data);
@@ -35,7 +41,7 @@ app.get('/data/:id', function (req, res) {
         res.json(matcheddata);
     }
     else {
-        res.status(404).send();
+        res.status(404).send('Not found');
     }
 });
 
@@ -43,7 +49,7 @@ app.get('/data/:id', function (req, res) {
 var dataNextId = 13;
 app.use(bodyParser.json());
 
-app.post('/data', function (req, res) {
+app.post('/data-create', function (req, res) {
     var body = req.body;
     body.id = dataNextId++;
     data.push(body);
@@ -51,7 +57,7 @@ app.post('/data', function (req, res) {
 });
 
 //DELETE  ---Deleting data By Id 
-app.delete('/data/:id', function (req, res) {
+app.delete('/data-delete/:id', function (req, res) {
     var dataId = parseInt(req.params.id);
     //var matcheddata = underscore.findWhere(data, { id: dataId });
     data.forEach(function (data) {
@@ -69,7 +75,7 @@ app.delete('/data/:id', function (req, res) {
 });
 
 // PUT   ---update data by Id
-app.put('/data/:id', function (req, res) {
+app.put('/data-put/:id', function (req, res) {
     var body = _.pick(req.body, 'name', 'latitude', 'longitude', 'images', 'snippet');//lấy  thuộc tính từ object body
     var validAttributes = {}
     var matcheddata;
