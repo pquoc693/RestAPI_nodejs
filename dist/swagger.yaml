@@ -25,7 +25,7 @@ paths:
       description: 
       operationId: getLocation
       responses:
-        '202':
+        '200':
           content:
             application/json:
               schema:
@@ -42,11 +42,12 @@ paths:
       operationId: getLocation
       parameters:
         - name: id
-          in: query
-          description: id=field in db
+          in: path
+          description: id of location
           required: true
           schema:
-            type: integer  
+            type: integer
+            minimun: 1  
       responses:
         '200':
           content:
@@ -56,45 +57,29 @@ paths:
           description: 	successful operation
         '404':
           description: Not found
-  /data-create:
+  /api/data-create:
     post:
+      
       tags:
         - location
       summary: Create location
       operationId: createLocation
       parameters:
-        - name: name
-          in: formData
-          description: name of location
+        - name: Authorization 
+          in: header
           required: true
+          description: Authorization
           schema:
-            type: string
-        - name: latitude
-          in: formData
-          description: latitude of location
-          required: true
-          schema:
-            type: number
-            format: double
-        - name: longitude
-          in: formData
-          description: longitude of location
-          required: true
-          schema:
-            type: number
-            format: double
-        - name: images
-          in: formData
-          description: link image of location
-          required: true
-          schema:
-            type: string
-        - name: snippet
-          in: formData
-          description: description about location
-          required: true
-          schema:
-            type: string
+            type: cookie
+            default: ACCESS_TOKEN
+      requestBody:
+        description: Object location
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationWtId'
+      
       responses:
         '200':
           content:
@@ -103,9 +88,9 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Location'
-          description: 	Successful operation
+          description: 	Created
 
-  /data-delete/{id}:
+  /api/data-delete/{id}:
     delete:
       tags:
         - location
@@ -113,11 +98,18 @@ paths:
       operationId: deleteLocation
       parameters:
         - name: id
-          in: query
-          description: id=field in db
+          in: path
+          description: id of location
           required: true
           schema:
-            type: integer  
+            type: integer
+        - name: Authorization 
+          in: header
+          required: true
+          description: Authorization
+          schema:
+            type: cookie
+            default: ACCESS_TOKEN  
       responses:
         '200':
           content:
@@ -129,51 +121,35 @@ paths:
           description: 	successful operation
         '404':
           description: Not found
-  /data-put/{id}:
+
+  /api/data-put/{id}:
     put:
       tags:
         - location
       summary: Edit location
       operationId: editLocation
+      requestBody:
+        description: Object location
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationWtId'
       parameters:
         - name: id
-          in: query
-          description: id=field in db
+          in: path
+          description: id of location
           required: true
           schema:
             type: integer
-        - name: name
-          in: formData
-          description: name of location
+        - name: Authorization 
+          in: header
           required: true
+          description: Authorization
           schema:
-            type: string
-        - name: latitude
-          in: formData
-          description: latitude of location
-          required: true
-          schema:
-            type: number
-            format: double
-        - name: longitude
-          in: formData
-          description: longitude of location
-          required: true
-          schema:
-            type: number
-            format: double
-        - name: images
-          in: formData
-          description: link image of location
-          required: true
-          schema:
-            type: string
-        - name: snippet
-          in: formData
-          description: description about location
-          required: true
-          schema:
-            type: string
+            type: cookie
+            default: ACCESS_TOKEN
+        
       responses:
         '200':
           content:
@@ -198,9 +174,24 @@ components:
         name:
           type: string
         latitude:
-          type: string
+          type: number
         longitude:
+          type: number
+        images:
           type: string
+        snippet:
+          type: string
+      xml:
+        name: Location
+    LocationWtId:
+      type: object
+      properties:
+        name:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
         images:
           type: string
         snippet:

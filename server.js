@@ -3,9 +3,24 @@ var data = require('./data');
 var express = require('express');
 var bodyParser = require('body-parser');
 var _ = require("underscore");
+const jwt    = require('jsonwebtoken'),
+config = require('./configurations/config');
 var app = express();
+//set secret
+app.set('Secret', config.secret);
+
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(bodyParser.json());
+
 // khai báo cổng chạy dịch vụ
 var PORT = process.env.PORT || 3000;
+//swagger
+app.use(express.static('./dist'));
+app.get('/swagger',(req,res)=>{
+    res.sendFile('index.html');
+})
 
 
 
@@ -15,11 +30,81 @@ var PORT = process.env.PORT || 3000;
 app.listen(PORT, function () {
     console.log('Express listening on port' + PORT + '!');
 });
-//swagger
-app.use(express.static('./dist'));
-app.get('/swagger',(req,res)=>{
-    res.sendFile('index.html');
+//---------------
+//authencation
+app.post('/authenticate',(req,res)=>{
+    
+    if(req.body.username === "admin"){
+        
+        if(req.body.password==="123"){
+             //if eveything is okey let's create our token 
+
+        const payload = {
+
+            check:  true
+
+          };
+
+          var token = jwt.sign(payload, app.get('Secret'), {
+                expiresIn: 1440 // expires in 24 hours
+
+          });
+
+
+          res.json({
+            message: 'authentication done ',
+            token: token
+          });
+
+        }else{
+            res.json({message:"please check your password !"})
+        }
+
+    }else{
+
+        res.json({message:"user not found !"})
+
+    }
+
 })
+//----
+const  ProtectedRoutes = express.Router(); 
+
+app.use('/api', ProtectedRoutes);
+
+ProtectedRoutes.use((req, res, next) =>{
+
+
+    // check header for the token
+    var token = req.headers['access-token'];
+
+    // decode token
+    if (token) {
+
+      // verifies secret and checks if the token is expired
+      jwt.verify(token, app.get('Secret'), (err, decoded) =>{      
+        if (err) {
+          return res.json({ message: 'invalid token' });    
+        } else {
+          // if everything is good, save to request for use in other routes
+          req.decoded = decoded;    
+          next();
+        }
+      });
+
+    } else {
+
+      // if there is no token  
+
+      res.send({ 
+
+          message: 'No token provided.' 
+      });
+
+    }
+  });
+
+//----------------------
 
 // GET   --- Get All data
 app.get('/data', function (req, res) {
@@ -47,9 +132,9 @@ app.get('/data/:id', function (req, res) {
 
 // POST ---- Create new data
 var dataNextId = 13;
-app.use(bodyParser.json());
 
-app.post('/data-create', function (req, res) {
+
+ProtectedRoutes.post('/data-create', function (req, res) {
     var body = req.body;
     body.id = dataNextId++;
     data.push(body);
@@ -57,7 +142,7 @@ app.post('/data-create', function (req, res) {
 });
 
 //DELETE  ---Deleting data By Id 
-app.delete('/data-delete/:id', function (req, res) {
+ProtectedRoutes.delete('/data-delete/:id', function (req, res) {
     var dataId = parseInt(req.params.id);
     //var matcheddata = underscore.findWhere(data, { id: dataId });
     data.forEach(function (data) {
@@ -75,7 +160,7 @@ app.delete('/data-delete/:id', function (req, res) {
 });
 
 // PUT   ---update data by Id
-app.put('/data-put/:id', function (req, res) {
+ProtectedRoutes.put('/data-put/:id', function (req, res) {
     var body = _.pick(req.body, 'name', 'latitude', 'longitude', 'images', 'snippet');//lấy  thuộc tính từ object body
     var validAttributes = {}
     var matcheddata;
