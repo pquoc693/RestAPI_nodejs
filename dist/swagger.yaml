@@ -62,7 +62,7 @@ paths:
     post:
       summary: Get token
       tags:
-        - Authencation
+        - Authentication
       requestBody:
         description: Object Account
         required: true

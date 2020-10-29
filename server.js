@@ -6,6 +6,18 @@ var _ = require("underscore");
 const jwt    = require('jsonwebtoken'),
 config = require('./configurations/config');
 var app = express();
+const rateLimit = require("express-rate-limit");
+ //jwt-redis
+ var redis = require('redis');
+var JWTR =  require('jwt-redis').default;
+var redisClient = redis.createClient();
+var jwtr = new JWTR(redisClient);
+//////
+ 
+const limiter = rateLimit({
+  windowMs: 60 * 1000, 
+  max: 5
+});
 //set secret
 app.set('Secret', config.secret);
 
@@ -45,16 +57,25 @@ app.post('/authenticate',(req,res)=>{
 
           };
 
-          var token = jwt.sign(payload, app.get('Secret'), {
-                expiresIn: 1440 // expires in 24 hours
+        //   var token = jwtr.sign(payload, app.get('Secret'), {
+        //         expiresIn: 1440 // expires in 24 hours
 
+        //   });
+           jwtr.sign(payload, app.get('Secret'))
+          .then((token)=>{
+                  // your code
+                  res.json({
+                    message: 'authentication done ',
+                    token: token
+                  });
+          })
+          .catch((error)=>{
+                  // error handling
+                  res.json({error: "loi"});
           });
 
 
-          res.json({
-            message: 'authentication done ',
-            token: token
-          });
+          
 
         }else{
             res.json({message:"please check your password !"})
@@ -67,30 +88,44 @@ app.post('/authenticate',(req,res)=>{
     }
 
 })
-//----
+//----Create router for authentication
 const  ProtectedRoutes = express.Router(); 
 
-app.use('/api', ProtectedRoutes);
+app.use('/api', limiter,ProtectedRoutes);
 
 ProtectedRoutes.use((req, res, next) =>{
 
 
     // check header for the token
     var token = req.headers['access-token'];
-
+    //jwtr.destroy("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaGVjayI6dHJ1ZSwianRpIjoibEFacFp5bmZwdiIsImlhdCI6MTYwMzk0MDc3OH0.R81Wb4b4D_Fo6IpH-KOl3MvHCtgqekikB-eUNN3EHYE");
     // decode token
     if (token) {
 
       // verifies secret and checks if the token is expired
-      jwt.verify(token, app.get('Secret'), (err, decoded) =>{      
-        if (err) {
-          return res.json({ message: 'invalid token' });    
-        } else {
-          // if everything is good, save to request for use in other routes
-          req.decoded = decoded;    
+    //   jwt.verify(token, app.get('Secret'), (err, decoded) =>{      
+    //     if (err) {
+    //       return res.json({ message: 'invalid token' });    
+    //     } else {
+    //       // if everything is good, save to request for use in other routes
+    //       req.decoded = decoded;    
+    //       next();
+    //     }
+    //   });
+    if(token === "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaGVjayI6dHJ1ZSwianRpIjoiSHRKT1ZmYWtVSyIsImlhdCI6MTYwMzk0MjM0N30.khSlmBO_FF4RPnBISRlZKk5OuUHsoS7Wn6iAjRxGNdM"){
+        var userToken=jwtr.verify(token,app.get('Secret'));
+
+        userToken.then(function(result) {
+            console.log(result) // "Some User token"
+            jwtr.destroy(result.jti);
+         });
+               return res.json({ message: ' token has been blocked' });   
+    }
+    else{
+           
           next();
-        }
-      });
+    }
+    
 
     } else {
 
@@ -107,7 +142,7 @@ ProtectedRoutes.use((req, res, next) =>{
 //----------------------
 
 // GET   --- Get All data
-app.get('/data', function (req, res) {
+app.get('/data', limiter, function (req, res) {
     res.json(data);
 });
 
@@ -212,3 +247,5 @@ ProtectedRoutes.put('/data-put/:id', function (req, res) {
     res.json(matcheddata);
 
 });
+
+//jwt.destroy('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaGVjayI6dHJ1ZSwiaWF0IjoxNjAzOTM5NjM0LCJleHAiOjE2MDM5NDEwNzR9.A6WDBaF5v7ahhShd3NabxmzDDJEw3a_xLqYn4S_y0kI')
